@@ -14,7 +14,7 @@ lazy val sparkVersion = "1.4.1"
 
 lazy val specs2Version = "3.6.4" 
 
-lazy val sscheckVersion = "0.2.0"
+lazy val sscheckVersion = "0.2.1" // "0.2.1-SNAPSHOT"
 
 // Use `sbt doc` to generate scaladoc, more on chapter 14.8 of "Scala Cookbook"
 
@@ -51,7 +51,7 @@ libraryDependencies += "org.specs2" %% "specs2-matcher-extra" % specs2Version
 
 libraryDependencies += "org.specs2" %% "specs2-junit" % specs2Version
 
-libraryDependencies += "org.specs2" %% "specs2-mock" % specs2Version
+libraryDependencies += "org.mockito" % "mockito-all" % "1.9.5"
 
 libraryDependencies += "org.twitter4j" % "twitter4j-core" % "[4.0,)"
 
