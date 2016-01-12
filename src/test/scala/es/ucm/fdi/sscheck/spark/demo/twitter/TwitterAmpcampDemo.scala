@@ -45,7 +45,7 @@ class TwitterAmpcampDemo
     sequential ^ s2"""
       - where $getHashtagsOk
       - where $countHashtagsOk
-      - where $getTopHastag
+      - where $getTopHastagOk
       """ 
       
   def getHashtagsOk = {
@@ -130,7 +130,7 @@ class TwitterAmpcampDemo
   }.set(minTestsOk = 15).verbose 
     
   
-  def getTopHastag = {
+  def getTopHastagOk = {
     type U = (RDD[Status], RDD[String])
     val windowSize = 1
     val topHashtagBatch = (_ : U)._2
