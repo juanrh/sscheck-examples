@@ -36,29 +36,16 @@ class TwitterAmpcampDemo
   
   // Spark configuration
   override def sparkMaster : String = "local[*]"
-  val batchInterval = Duration(200) // Duration(500) 
+  val batchInterval = Duration(500) 
   override def batchDuration = batchInterval
   override def defaultParallelism = 3
   override def enableCheckpointing = true
   
   def is = 
     sequential ^ s2"""
+      - where $getHashtagsOk
       - where $countHashtagsOk
       """
-    
-/*          - where $p1
-                - where $getHashtagsOk
- 
-      * */
-
-
-  def p1 = {
-    val gen = TwitterGen.addHashtag("#pepe")(TwitterGen.tweet())
-    Prop.forAll(gen){ status =>
-    println(s"status [${status}] with text: ${status.getText}")
-    true 
-    }
-  }.set(minTestsOk = 50).verbose
       
   def getHashtagsOk = {
     type U = (RDD[Status], RDD[String])
@@ -80,54 +67,59 @@ class TwitterAmpcampDemo
       gen)(
       TweetOps.getHashtags)(
       formula)
-  }.set(minTestsOk = 2).verbose
-      
+  }.set(minTestsOk = 5).verbose
   
   def countHashtagsOk = {
     type U = (RDD[Status], RDD[(String, Int)])
     val countBatch = (_ : U)._2
     val windowSize = 3
-    //val numBatches = windowSize * 4
     val (sparkTimeout, scalaTimeout) = (windowSize * 4, windowSize * 2)
     val (sparkTweet, scalaTweet) = 
       (TwitterGen.tweetWithHashtags(List("#spark")), TwitterGen.tweetWithHashtags(List("#scala"))) 
-    val gen = BatchGen.always(BatchGen.ofN(2, sparkTweet), sparkTimeout) ++  
-              BatchGen.always(BatchGen.ofN(1, scalaTweet), scalaTimeout)
+    val (sparkBatchSize, scalaBatchSize) = (2, 1)
+    val gen = BatchGen.always(BatchGen.ofN(sparkBatchSize, sparkTweet), sparkTimeout) ++  
+              BatchGen.always(BatchGen.ofN(scalaBatchSize, scalaTweet), scalaTimeout)
     
-    /**
-     * Ideas: siempre 6 de spark hasta sparkTimeout-2, y eventualmente scala vale 3
-     * TODO el 6 viene de 2 del tamanio de spark tweet * 3 de windows size
-     * */
    /* 
-    * Falso pq no ocurre al principio del stream, comentar
+    * Note the following formula is false because it is only after some time that the
+    * count for "#spark" reaches 2 * windowSize
     * 
     *  val formula : Formula[U] = always { 
-      at(countBatch)(_ should existsRecord(_ == ("#spark", 6)))
-      
-    } during (scalaTimeout - 2)
+         at(countBatch)(_ should existsRecord(_ == ("#spark", 6)))
+      } during (scalaTimeout - 2)
+    */
     
-    TODO Contar pq queda bonito que haga falta el eventually aqui de format natural
-    TODO aniadir
-     - eventually (#scala,3)
-     - despues del always ("#spark", 6) se llega a ("#spark", 0): hacerlo con una 
-     propiedad aparte para ir contando poco a poco, esta propiedad NO sustituye el eventually
-     por un ("#spark", 6) until ("#spark", 0) pq se tiene ("#spark", 6), ("#spark", 4), ("#spark", 2), ("#spark", 0)
-     hasta que se sale de la ventana, lo que si podemos hacer es
-     ("#spark", 6) until ( ("#spark", 4) and next("#spark", 2) and next(next(("#spark", 0))) 
-     que es precisamente lo que pasa
-    * */           
-              
-    val formula : Formula[U] =
+    def countNHashtags(hashtag : String)(n : Int)  = 
+      at(countBatch)(_ should existsRecord(_ == (hashtag, n : Int)))
+    val (countNSparks, countNScalas) = (countNHashtags("#spark")_, countNHashtags("#scala")_)
+    val laterAlwaysAllSparkCount =  
       later { 
-        always { 
-          at(countBatch)(_ should existsRecord(_ == ("#spark", 2 * windowSize)))
-        } during (sparkTimeout -2) //  // 
-      } on 4
+          always { 
+            countNSparks(sparkBatchSize * windowSize)
+          } during (sparkTimeout -2) 
+      } on (windowSize + 1) 
+    val laterScalaCount = 
+      later { 
+        countNScalas(scalaBatchSize * windowSize)
+      } on (sparkTimeout + windowSize + 1)
+    val laterSparkCountUntilDownToZero = 
+      later { 
+        { countNSparks(sparkBatchSize * windowSize) } until {
+          countNSparks(sparkBatchSize * (windowSize - 1)) and
+            next(countNSparks(sparkBatchSize * (windowSize - 2))) and
+            next(next(countNSparks(sparkBatchSize * (windowSize - 3)))) 
+          } on (sparkTimeout -2) 
+      } on (windowSize + 1)
+    val formula : Formula[U] = 
+      laterAlwaysAllSparkCount and 
+      laterScalaCount and 
+      laterSparkCountUntilDownToZero
+
     forAllDStream(
       gen)(
       TweetOps.countHashtags(_, batchInterval, windowSize))(
       formula)
-  }.set(minTestsOk = 5).verbose // FIXME restore .set(minTestsOk = 15).verbose
+  }.set(minTestsOk = 15).verbose 
     
   
 }
