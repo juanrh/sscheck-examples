@@ -34,15 +34,20 @@ object TweetOps {
     
   /** Get the 10 most popular hashtags in the last 5 minutes
    *  
-   *  Convert from wall-clock time into logical time by defining the
-   *  window duration and slide as a multiple of the batch interval. Note
-   *  no expressivity is loss because DStream.window already imposes that
-   *  constraint
+   *  
    *  
    */
-  def getPopularHastags(tweets : DStream[Status]) : DStream[String] = {
-    val hashtags = getHashtags(tweets)
-    // ???
-    hashtags // FIXME
+  def getTopHastag(tweets : DStream[Status], 
+                        batchInterval : Duration, windowSize : Int) : DStream[String] = {
+    val counts = countHashtags(tweets, batchInterval, windowSize)
+    val topHashtag = counts.map { case(tag, count) => (count, tag) }
+                           .transform(rdd => { 
+                                val sorted = rdd.sortByKey(false)
+                                rdd.sparkContext.parallelize(sorted.take(1).map(_._2))
+                             })
+    topHashtag.foreachRDD(rdd =>
+      println(s"Top hashtag: ${rdd.take(1).mkString(",")}")
+    )
+    topHashtag
   }
 }

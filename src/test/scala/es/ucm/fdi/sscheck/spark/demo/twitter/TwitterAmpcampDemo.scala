@@ -36,7 +36,7 @@ class TwitterAmpcampDemo
   
   // Spark configuration
   override def sparkMaster : String = "local[*]"
-  val batchInterval = Duration(500) 
+  val batchInterval = Duration(200) // Duration(500) 
   override def batchDuration = batchInterval
   override def defaultParallelism = 3
   override def enableCheckpointing = true
@@ -45,7 +45,8 @@ class TwitterAmpcampDemo
     sequential ^ s2"""
       - where $getHashtagsOk
       - where $countHashtagsOk
-      """
+      - where $getTopHastag
+      """ 
       
   def getHashtagsOk = {
     type U = (RDD[Status], RDD[String])
@@ -69,6 +70,14 @@ class TwitterAmpcampDemo
       formula)
   }.set(minTestsOk = 5).verbose
   
+  
+  /**
+   *  Here we convert from wall-clock time into logical time by defining the
+   *  window duration and slide as a multiple of the batch interval. Note
+   *  no expressivity is loss because DStream.window already imposes the
+   *  constraint of using multiples of the batch interval for the window
+   *  duration and slide 
+   * */
   def countHashtagsOk = {
     type U = (RDD[Status], RDD[(String, Int)])
     val countBatch = (_ : U)._2
@@ -88,7 +97,6 @@ class TwitterAmpcampDemo
          at(countBatch)(_ should existsRecord(_ == ("#spark", 6)))
       } during (scalaTimeout - 2)
     */
-    
     def countNHashtags(hashtag : String)(n : Int)  = 
       at(countBatch)(_ should existsRecord(_ == (hashtag, n : Int)))
     val (countNSparks, countNScalas) = (countNHashtags("#spark")_, countNHashtags("#scala")_)
@@ -122,5 +130,36 @@ class TwitterAmpcampDemo
   }.set(minTestsOk = 15).verbose 
     
   
+  def getTopHastag = {
+    type U = (RDD[Status], RDD[String])
+    val windowSize = 1
+    val topHashtagBatch = (_ : U)._2
+    val scalaTimeout = 6
+    val sparkPopular = 
+      BatchGen.ofN(5, TwitterGen.tweetWithHashtags(List("#spark"))) +
+      BatchGen.ofN(2, TwitterGen.tweetWithHashtags(List("#scalacheck"))) 
+    val scalaPopular = 
+      BatchGen.ofN(7, TwitterGen.tweetWithHashtags(List("#scala"))) +
+      BatchGen.ofN(2, TwitterGen.tweetWithHashtags(List("#scalacheck"))) 
+    val gen = BatchGen.until(sparkPopular, scalaPopular, scalaTimeout) 
+    
+    val topHashtagCountOk = always { 
+      at(topHashtagBatch){ hashtags =>
+        hashtags.count <= 1 
+      }
+    } during scalaTimeout
+    val topSparkUntilTopScala = 
+      { at(topHashtagBatch)(_ should foreachRecord(_ == "#spark" )) } until {
+        at(topHashtagBatch)(_ should foreachRecord(_ == "#scala" ))
+      } on (scalaTimeout)
+    val formula : Formula[U] = 
+      topHashtagCountOk and topSparkUntilTopScala
+    
+    forAllDStream(
+      gen)(
+      TweetOps.getTopHastag(_, batchInterval, windowSize))(
+      formula)
+  }.set(minTestsOk = 10).verbose
+ 
 }
 
