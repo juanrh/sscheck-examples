@@ -25,6 +25,10 @@ scalacOptions ++= Seq("-feature", "-unchecked", "-deprecation")
 // SparkContext (even through SharedSparkContext) are running then tests fail randomly
 parallelExecution := false
 
+// to avoid ClassNotFoundException http://stackoverflow.com/questions/23251001/sbt-test-setup-throws-java-lang-classnotfoundexception when running in sbt 
+// this makes the test run in separate JVM http://www.scala-sbt.org/0.12.3/docs/Detailed-Topics/Forking.html
+fork := true
+
 // Could be interesting at some point
 // resourceDirectory in Compile := baseDirectory.value / "main/resources"
 // resourceDirectory in Test := baseDirectory.value / "main/resources"
