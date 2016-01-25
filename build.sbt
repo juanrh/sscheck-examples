@@ -55,9 +55,10 @@ libraryDependencies += "org.mockito" % "mockito-all" % "1.9.5"
 
 libraryDependencies += "org.twitter4j" % "twitter4j-core" % "[4.0,)"
 
-// FIXME delete libraryDependencies += "org.mockito" % "mockito-core" % "2.0.35-beta"
-
 libraryDependencies += "es.ucm.fdi" %% "sscheck" % sscheckVersion
+
+//  resolve bintray-hosted dependencies
+resolvers += Resolver.jcenterRepo
 
 // sscheck repository
 resolvers += Resolver.bintrayRepo("juanrh", "maven")
