@@ -57,8 +57,9 @@ libraryDependencies += "org.twitter4j" % "twitter4j-core" % "[4.0,)"
 
 libraryDependencies += "es.ucm.fdi" %% "sscheck" % sscheckVersion
 
-//  resolve bintray-hosted dependencies
-resolvers += Resolver.jcenterRepo
+resolvers ++= Seq(
+  "Spark Packages Repo" at "http://dl.bintray.com/spark-packages/maven"
+)
 
 // sscheck repository
 resolvers += Resolver.bintrayRepo("juanrh", "maven")
