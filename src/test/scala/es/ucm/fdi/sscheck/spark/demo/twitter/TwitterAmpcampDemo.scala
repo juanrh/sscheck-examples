@@ -35,7 +35,7 @@ class TwitterAmpcampDemo
   with ScalaCheck {
   
   // Spark configuration
-  override def sparkMaster : String = "local[*]"
+  override def sparkMaster : String = "local[4]"
   val batchInterval = Duration(500) 
   override def batchDuration = batchInterval
   override def defaultParallelism = 3
