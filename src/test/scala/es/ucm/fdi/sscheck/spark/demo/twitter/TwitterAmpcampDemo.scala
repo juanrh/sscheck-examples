@@ -36,7 +36,7 @@ class TwitterAmpcampDemo
   
   // Spark configuration
   override def sparkMaster : String = "local[5]"
-  val batchInterval = Duration(700) 
+  val batchInterval = Duration(1000) 
   override def batchDuration = batchInterval
   override def defaultParallelism = 3
   override def enableCheckpointing = true
