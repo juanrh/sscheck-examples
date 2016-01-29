@@ -27,15 +27,11 @@ object TweetOps {
     val (windowDuration, windowInterval) = (batchInterval * windowSize,  batchInterval)
     val counts = hashtags.map(tag => (tag, 1))
                          .reduceByKeyAndWindow(_ + _, _ - _, windowDuration, windowInterval)
-    counts.checkpoint(batchInterval*100000)
     counts.print()
     counts
   }
     
-  /** Get the 10 most popular hashtags in the last 5 minutes
-   *  
-   *  
-   *  
+  /** Get the 10 most popular hashtags in the last 5 minutes  
    */
   def getTopHastag(tweets : DStream[Status], 
                         batchInterval : Duration, windowSize : Int) : DStream[String] = {
