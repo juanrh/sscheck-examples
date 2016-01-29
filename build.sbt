@@ -6,15 +6,15 @@ organization := "es.ucm.fdi"
 
 version := "0.0.1"
 
-scalaVersion := "2.10.5"
+scalaVersion := "2.10.6"
 
-crossScalaVersions  := Seq("2.10.5")
+crossScalaVersions  := Seq("2.10.6")
 
-lazy val sparkVersion = "1.4.1"
+lazy val sparkVersion = "1.6.0"
 
 lazy val specs2Version = "3.6.4" 
 
-lazy val sscheckVersion = "0.2.1" // "0.2.1-SNAPSHOT"
+lazy val sscheckVersion = "0.2.2" // "0.2.2-SNAPSHOT" //  
 
 // Use `sbt doc` to generate scaladoc, more on chapter 14.8 of "Scala Cookbook"
 
@@ -57,7 +57,7 @@ libraryDependencies += "org.specs2" %% "specs2-junit" % specs2Version
 
 libraryDependencies += "org.mockito" % "mockito-all" % "1.9.5"
 
-libraryDependencies += "org.twitter4j" % "twitter4j-core" % "[4.0,)"
+libraryDependencies += "org.twitter4j" % "twitter4j-core" % "4.0.4"
 
 libraryDependencies += "es.ucm.fdi" %% "sscheck" % sscheckVersion
 
