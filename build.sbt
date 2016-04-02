@@ -42,24 +42,23 @@ libraryDependencies += "org.apache.spark" %% "spark-core" % sparkVersion
 
 libraryDependencies += "org.apache.spark" %% "spark-streaming" % sparkVersion
 
-// additional libraries: NOTE as we are writing a testing library they should also be available for main
-libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.1"
-
-libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.12.2"
-
-libraryDependencies += "org.specs2" %% "specs2-core" % specs2Version
-
-libraryDependencies += "org.specs2" %% "specs2-scalacheck" % specs2Version
-
-libraryDependencies += "org.specs2" %% "specs2-matcher-extra" % specs2Version
-
-libraryDependencies += "org.specs2" %% "specs2-junit" % specs2Version
-
-libraryDependencies += "org.mockito" % "mockito-all" % "1.9.5"
-
+// Twitter4j
 libraryDependencies += "org.twitter4j" % "twitter4j-core" % "4.0.4"
 
-libraryDependencies += "es.ucm.fdi" %% "sscheck" % sscheckVersion
+// Test dependencies
+libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.12.2" % "test"
+
+libraryDependencies += "org.specs2" %% "specs2-core" % specs2Version % "test"
+
+libraryDependencies += "org.specs2" %% "specs2-scalacheck" % specs2Version % "test"
+
+libraryDependencies += "org.specs2" %% "specs2-matcher-extra" % specs2Version % "test"
+
+libraryDependencies += "org.specs2" %% "specs2-junit" % specs2Version % "test"
+
+libraryDependencies += "org.mockito" % "mockito-all" % "1.9.5" % "test"
+
+libraryDependencies += "es.ucm.fdi" %% "sscheck" % sscheckVersion % "test"
 
 resolvers ++= Seq(
   "Spark Packages Repo" at "http://dl.bintray.com/spark-packages/maven"
