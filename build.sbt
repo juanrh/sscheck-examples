@@ -4,17 +4,17 @@ name := "sscheck-examples"
 
 organization := "es.ucm.fdi"
 
-version := "0.0.1"
+version := "0.0.2"
 
 scalaVersion := "2.10.6"
 
 crossScalaVersions  := Seq("2.10.6")
 
-lazy val sparkVersion = "1.6.0"
+lazy val sparkVersion = "1.6.1"
 
 lazy val specs2Version = "3.6.4" 
 
-lazy val sscheckVersion = "0.2.2" // "0.2.2-SNAPSHOT" //  
+lazy val sscheckVersion = "0.2.3" // "0.2.3-SNAPSHOT" //  
 
 // Use `sbt doc` to generate scaladoc, more on chapter 14.8 of "Scala Cookbook"
 
