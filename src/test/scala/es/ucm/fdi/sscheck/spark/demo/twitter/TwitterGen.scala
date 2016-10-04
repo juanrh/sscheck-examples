@@ -44,14 +44,13 @@ object TwitterGen {
                   (tweetGen : Gen[Status]) : Gen[Status] = 
       for {
         hashtag <- hashtagGen
+        if hashtag.length > 0 &&  hashtag(0) == '#' 
         status <- tweetGen
         statusText = status.getText
         pos <- Gen.choose(0, statusText.length)
         (start, end) = statusText.splitAt(pos)
         textWithHashtag = s"$start $hashtag $end"
       } yield {
-        require(hashtag.length > 0 &&  hashtag(0) == '#', 
-                s"not empty hashtags starting with '#' are required, found $hashtag" )
         when(status.getText).thenReturn(textWithHashtag)
         when(status.toString).thenReturn(textWithHashtag)
         status

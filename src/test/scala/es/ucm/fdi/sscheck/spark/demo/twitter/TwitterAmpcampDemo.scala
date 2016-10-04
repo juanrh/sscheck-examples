@@ -36,9 +36,9 @@ class TwitterAmpcampDemo
   
   // Spark configuration
   override def sparkMaster : String = "local[5]"
-  val batchInterval = Duration(1000) 
+  val batchInterval = Duration(500) 
   override def batchDuration = batchInterval
-  override def defaultParallelism = 3
+  override def defaultParallelism = 4
   override def enableCheckpointing = true
   
   def is = 
@@ -67,7 +67,7 @@ class TwitterAmpcampDemo
       }
     } during numBatches
 
-    forAllDStream(
+    forAllDStream[Status,String](
       gen)(
       TweetOps.getHashtags)(
       formula)
@@ -127,7 +127,7 @@ class TwitterAmpcampDemo
       laterScalaCount and 
       laterSparkCountUntilDownToZero
 
-    forAllDStream(
+    forAllDStream[Status,(String,Int)](
       gen)(
       TweetOps.countHashtags(_, batchInterval, windowSize))(
       formula)
@@ -151,7 +151,7 @@ class TwitterAmpcampDemo
       }
     } during numBatches
     
-    forAllDStream(
+    forAllDStream[Status,String](
       gen)(
       TweetOps.getTopHastag(_, batchInterval, 2))(
       formula)
@@ -176,7 +176,7 @@ class TwitterAmpcampDemo
         at(topHashtagBatch)(_ should foreachRecord(_ == "#scala" ))
       } on (scalaTimeout)
     
-    forAllDStream(
+    forAllDStream[Status,String](
       gen)(
       TweetOps.getTopHastag(_, batchInterval, windowSize))(
       formula)
