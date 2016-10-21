@@ -26,6 +26,9 @@ import org.scalacheck.Gen.const
  * 
  * NOTE we cannot use import Mockito through its integration in Specs2 with org.specs2.mock.Mockito because Spark throws 
  * object not serializable (class: org.specs2.mock.mockito.TheMockitoMocker$$anon$1, value: org.specs2.mock.mockito.TheMockitoMocker$$anon$1@3290b1a6)
+ * 
+ * NOTE: Even though there is some repeated snippets, code has not been refactored so each
+ * property can be self contained
  */
 @RunWith(classOf[JUnitRunner])
 class TwitterAmpcampDemo   
@@ -35,7 +38,7 @@ class TwitterAmpcampDemo
   with ScalaCheck {
   
   // Spark configuration
-  override def sparkMaster : String = "local[5]"
+  override def sparkMaster : String = "local[*]"
   val batchInterval = Duration(500) 
   override def batchDuration = batchInterval
   override def defaultParallelism = 4
@@ -129,11 +132,11 @@ class TwitterAmpcampDemo
 
     forAllDStream[Status,(String,Int)](
       gen)(
-      TweetOps.countHashtags(_, batchInterval, windowSize))(
+      TweetOps.countHashtags(batchInterval, windowSize)(_))(
       formula)
   }.set(minTestsOk = 15).verbose 
     
-  
+  // Safety: never more than one top hashtag
   def onlyOneTopHashtag = {
     type U = (RDD[Status], RDD[String])
     val topHashtagBatch = (_ : U)._2
@@ -153,7 +156,7 @@ class TwitterAmpcampDemo
     
     forAllDStream[Status,String](
       gen)(
-      TweetOps.getTopHastag(_, batchInterval, 2))(
+      TweetOps.getTopHastag(batchInterval, 2)(_))(
       formula)
   }.set(minTestsOk = 10).verbose
   
@@ -178,7 +181,7 @@ class TwitterAmpcampDemo
     
     forAllDStream[Status,String](
       gen)(
-      TweetOps.getTopHastag(_, batchInterval, windowSize))(
+      TweetOps.getTopHastag(batchInterval, windowSize)(_))(
       formula)
   }.set(minTestsOk = 15).verbose
  

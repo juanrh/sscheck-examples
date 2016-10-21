@@ -44,7 +44,7 @@ object TwitterGen {
                   (tweetGen : Gen[Status]) : Gen[Status] = 
       for {
         hashtag <- hashtagGen
-        if hashtag.length > 0 &&  hashtag(0) == '#' 
+        if hashtag.length > 0 && hashtag(0) == '#' 
         status <- tweetGen
         statusText = status.getText
         pos <- Gen.choose(0, statusText.length)
@@ -56,6 +56,14 @@ object TwitterGen {
         status
       }
       
-     def tweetWithHashtags(possibleHashTags : Seq[String]) : Gen[Status] = 
-       addHashtag(Gen.oneOf(possibleHashTags))(tweet(noHashtags=true))
+    def tweetWithHashtags(possibleHashTags: Seq[String]): Gen[Status] = 
+      addHashtag(Gen.oneOf(possibleHashTags))(tweet(noHashtags=true))
+    
+    def hashtag(maxLen: Int): Gen[String] = for {
+  	  n <- Gen.choose(1, maxLen)
+  	  chars <- Gen.listOfN(n, Gen.alphaNumChar)
+    } yield ("#" :: chars).mkString("")  
+    
+    def tweetWithHashtagsOfMaxLen(maxHashtagLength: Int): Gen[Status] =
+      addHashtag(hashtag(maxHashtagLength))(tweet(noHashtags=true))
 }
