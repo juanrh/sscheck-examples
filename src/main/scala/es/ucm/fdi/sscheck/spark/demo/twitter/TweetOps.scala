@@ -38,7 +38,7 @@ object TweetOps {
    *  with the naive implementation of countHashtags above, that
    *  never removes any key from the reduce window
    */
-  def getTopHastag(batchInterval: Duration, windowSize: Int)
+  def getTopHashtag(batchInterval: Duration, windowSize: Int)
                   (tweets: DStream[Status]): DStream[String] = {
     val counts = countHashtags(batchInterval, windowSize)(tweets)
     val topHashtag = counts.map { case(tag, count) => (count, tag) }
