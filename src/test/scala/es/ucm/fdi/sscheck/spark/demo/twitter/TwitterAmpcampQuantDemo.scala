@@ -47,16 +47,19 @@ class TwitterAmpcampQuantDemo
   
   def is = 
     sequential ^ s2"""
-      - where $forallNumRepetitionsLaterCountNumRepetitions
-      - where $alwaysEventuallyZeroCount
-      - where $alwaysPeakImpliesEventuallyTop
+      - where if we repeat a DStream N times then we count each hashtag in the first
+      batch N times $forallNumRepetitionsLaterCountNumRepetitions
+      - where all hashtags eventually get a count of 0 when they get out of 
+      the counting window $alwaysEventuallyZeroCount
+      - where always when we generate periodic peaks of a random 
+      hashtag then the hashtag becomes the top hashtag $alwaysPeakImpliesEventuallyTop
       """        
 
-  val hashtagRe = """#\S+""".r
+  private val hashtagRe = """#\S+""".r
   /** Get the expected hashtags for a RDD of Status, as defined by 
    *  the matching with hashtagRe
    */
-  def getExpectedHashtagsForStatuses(statuses: RDD[Status]): RDD[String] = 
+  private def getExpectedHashtagsForStatuses(statuses: RDD[Status]): RDD[String] = 
     statuses.flatMap { status => hashtagRe.findAllIn(status.getText)}
   
   /** This a a simple property with just now and next as temporal operators, 
@@ -77,6 +80,7 @@ class TwitterAmpcampQuantDemo
     // numRepetitions should be <= windowSize, as in the worst case each
     // hashtag is generated once per batch before being repeated
       // using Prop.forAllNoShrink because sscheck currently does not support shrinking 
+    println("Running forallNumRepetitionsLaterCountNumRepetitions")
     Prop.forAllNoShrink(Gen.choose(1, windowSize)) { numRepetitions =>
       println(s"Testing for numRepetitions = $numRepetitions")
       
@@ -122,28 +126,28 @@ class TwitterAmpcampQuantDemo
       hashtags <- Gen.listOfN(6, TwitterGen.hashtag(maxHashtagLength))
       tweets <- BatchGen.ofNtoM(5, 10, 
                   TwitterGen.addHashtag(Gen.oneOf(hashtags))(TwitterGen.tweet(noHashtags=true)))
-
     } yield tweets
     val emptyTweetBatch = Batch.empty[Status]
-    val gen = BatchGen.always(tweets, numBatches*2) ++ BatchGen.always(emptyTweetBatch, windowSize*2)
+    val gen = BatchGen.always(tweets, numBatches) ++ BatchGen.always(emptyTweetBatch, windowSize*2)
     
     val alwaysEventuallyZeroCount: Formula[U] = alwaysF[U] { case (statuses, _) =>
-        val hashtags = getExpectedHashtagsForStatuses(statuses)
-        laterR[U] { case (_, counts) => 
-          val countsForStatuses = 
-            hashtags
-              .map((_, ()))
-              .join(counts)
-              .map{case (hashtag, (_, count)) => count}
-          countsForStatuses should foreachRecord { _ == 0}
-        } on (windowSize * 2)
-    } during (numBatches)
+      val hashtags = getExpectedHashtagsForStatuses(statuses)
+      laterR[U] { case (_, counts) => 
+        val countsForStatuses = 
+          hashtags
+            .map((_, ()))
+            .join(counts)
+            .map{case (hashtag, (_, count)) => count}
+        countsForStatuses should foreachRecord { _ == 0}
+      } on windowSize*3
+    } during numBatches
     
+    println("Running alwaysEventuallyZeroCount")
     forAllDStream[Status,(String,Int)](
       gen)(
       TweetOps.countHashtags(batchInterval, windowSize)(_))(
       alwaysEventuallyZeroCount)
-  }.set(minTestsOk = 10).verbose
+  }.set(minTestsOk = 15).verbose
   
   /**
    * Liveness of TweetOps.getTopHashtag: if we superpose random tweets
@@ -175,20 +179,21 @@ class TwitterAmpcampQuantDemo
    
     val alwaysAPeakImpliesEventuallyTop: Formula[U] = alwaysF[U] { case (statuses, _) => 
       val hashtags = getExpectedHashtagsForStatuses(statuses)
-      val peakHashtags = hashtags.map{(_,1)}.reduceByKey{_+_}.filter{_._2 >= peakSize} keys
+      val peakHashtags = hashtags.map{(_,1)}.reduceByKey{_+_}.filter{_._2 >= peakSize}.keys.cache()
       val isPeak: Formula[U] = Solved.ofResult { ! peakHashtags.isEmpty }
       val eventuallyTop = laterR[U] { case (_, topHashtag) => 
-        topHashtag.subtract(peakHashtags) isEmpty
+        (topHashtag.subtract(peakHashtags) isEmpty) and
+        (peakHashtags.subtract(topHashtag) isEmpty)
       } on numBatches
       
       isPeak ==> eventuallyTop
     } during numBatches * 3 
-                                                      
+                                 
+    println("Running alwaysPeakImpliesEventuallyTop")
     forAllDStream[Status,String](
       gen)(
       TweetOps.getTopHashtag(batchInterval, windowSize)(_))(
       alwaysAPeakImpliesEventuallyTop)
-  }
- 
+  }.set(minTestsOk = 15).verbose
 }
 

@@ -46,12 +46,12 @@ class TwitterAmpcampDemo
   
   def is = 
     sequential ^ s2"""
-      - where $getHashtagsOk
-      - where $getHashtagsReferenceImplementationOk
-      - where $countHashtagsOk
-      - where $hashtagsAreAlwasysCounted
-      - where $alwaysOnlyOneTopHashtag
-      - where $sparkTopUntilScalaTop
+      - where only the generated hashtags are found in the output $getHashtagsOk
+      - where TweetOps.getHashtags works according to the reference implementation $getHashtagsReferenceImplementationOk
+      - where TweetOps.countHashtags counts ok $countHashtagsOk
+      - where hashtags are always counted $hashtagsAreAlwasysCounted
+      - where there is always one and only one top hashtag $alwaysOnlyOneTopHashtag
+      - where TweetOps.getTopHashtag works ok $sparkTopUntilScalaTop
       """   
   
   /** Check that TweetOps.getHashtags only returns the hashtags 
@@ -75,6 +75,7 @@ class TwitterAmpcampDemo
       }
     } during numBatches
 
+    println("Running getHashtagsOk")
     forAllDStream[Status,String](
       gen)(
       TweetOps.getHashtags)(
@@ -82,11 +83,11 @@ class TwitterAmpcampDemo
   }.set(minTestsOk = 10).verbose
   
   
-  val hashtagRe = """#\S+""".r
+  private val hashtagRe = """#\S+""".r
   /** Get the expected hashtags for a RDD of Status, as defined by 
    *  the matching with hashtagRe
    */
-  def getExpectedHashtagsForStatuses(statuses: RDD[Status]): RDD[String] = 
+  private def getExpectedHashtagsForStatuses(statuses: RDD[Status]): RDD[String] = 
     statuses.flatMap { status => hashtagRe.findAllIn(status.getText)}
   
   /** Here we use the "reference implementation" technique
@@ -104,9 +105,12 @@ class TwitterAmpcampDemo
     val gen = BatchGen.always(tweets, numBatches)
     
     val formula: Formula[U] = alwaysR[U] { case (statuses, hashtags) => 
-      hashtags.subtract(getExpectedHashtagsForStatuses(statuses)) isEmpty
+      val expectedHashtags = getExpectedHashtagsForStatuses(statuses).cache()  
+      (hashtags.subtract(expectedHashtags) isEmpty) and
+      (expectedHashtags.subtract(hashtags) isEmpty)
     } during numBatches
 
+    println("Running getHashtagsReferenceImplementationOk")
     forAllDStream[Status,String](
       gen)(
       TweetOps.getHashtags)(
@@ -171,6 +175,7 @@ class TwitterAmpcampDemo
       laterScalaCount and 
       laterSparkCountUntilDownToZero
 
+    println("Running countHashtagsOk")
     forAllDStream[Status,(String,Int)](
       gen)(
       TweetOps.countHashtags(batchInterval, windowSize)(_))(
@@ -190,7 +195,7 @@ class TwitterAmpcampDemo
     val gen = BatchGen.always(tweets, numBatches)
         
     val alwaysCounted: Formula[U] = alwaysR[U] { case (statuses, counts) =>  
-      val expectedHashtags = getExpectedHashtagsForStatuses(statuses)
+      val expectedHashtags = getExpectedHashtagsForStatuses(statuses).cache()
       val expectedHashtagsWithActualCount = 
         expectedHashtags
          .map((_, ()))
@@ -202,10 +207,12 @@ class TwitterAmpcampDemo
       
       // all hashtags have been counted
       (countedHashtags.subtract(expectedHashtags) isEmpty) and
+      (expectedHashtags.subtract(countedHashtags) isEmpty) and
       // no count is zero
       (countings should foreachRecord { _ > 0 }) 
     } during numBatches
     
+    println("Running hashtagsAreAlwasysCounted")
     forAllDStream[Status,(String,Int)](
       gen)(
       TweetOps.countHashtags(batchInterval, windowSize)(_))(
@@ -213,8 +220,8 @@ class TwitterAmpcampDemo
 
   }.set(minTestsOk = 15).verbose 
       
-  /** Safety of TweetOps.getTopHastag: there is never 
-   *  more than one top hashtag
+  /** Safety of TweetOps.getTopHastag: there is 
+   *  always one top hashtag
    * */
   def alwaysOnlyOneTopHashtag = {
     type U = (RDD[Status], RDD[String])
@@ -228,10 +235,11 @@ class TwitterAmpcampDemo
     val gen = BatchGen.always(tweets, numBatches)    
     val formula : Formula[U] = always { 
       at(topHashtagBatch){ hashtags =>
-        hashtags.count <= 1 
+        hashtags.count == 1 
       }
     } during numBatches
     
+    println("Running alwaysOnlyOneTopHashtag")
     forAllDStream[Status,String](
       gen)(
       TweetOps.getTopHashtag(batchInterval, 2)(_))(
@@ -264,6 +272,7 @@ class TwitterAmpcampDemo
         at(topHashtagBatch)(_ should foreachRecord(_ == "#scala" ))
       } on (scalaTimeout)
     
+    println("Running sparkTopUntilScalaTop")
     forAllDStream[Status,String](
       gen)(
       TweetOps.getTopHashtag(batchInterval, windowSize)(_))(
