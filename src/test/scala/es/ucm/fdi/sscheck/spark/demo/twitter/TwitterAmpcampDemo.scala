@@ -76,7 +76,7 @@ class TwitterAmpcampDemo
     } during numBatches
 
     println("Running getHashtagsOk")
-    forAllDStream[Status,String](
+    forAllDStream(
       gen)(
       TweetOps.getHashtags)(
       formula)
@@ -111,7 +111,7 @@ class TwitterAmpcampDemo
     } during numBatches
 
     println("Running getHashtagsReferenceImplementationOk")
-    forAllDStream[Status,String](
+    forAllDStream(
       gen)(
       TweetOps.getHashtags)(
       formula)
@@ -176,7 +176,7 @@ class TwitterAmpcampDemo
       laterSparkCountUntilDownToZero
 
     println("Running countHashtagsOk")
-    forAllDStream[Status,(String,Int)](
+    forAllDStream(
       gen)(
       TweetOps.countHashtags(batchInterval, windowSize)(_))(
       formula)
@@ -213,7 +213,7 @@ class TwitterAmpcampDemo
     } during numBatches
     
     println("Running hashtagsAreAlwasysCounted")
-    forAllDStream[Status,(String,Int)](
+    forAllDStream(
       gen)(
       TweetOps.countHashtags(batchInterval, windowSize)(_))(
       alwaysCounted)
@@ -240,7 +240,7 @@ class TwitterAmpcampDemo
     } during numBatches
     
     println("Running alwaysOnlyOneTopHashtag")
-    forAllDStream[Status,String](
+    forAllDStream(
       gen)(
       TweetOps.getTopHashtag(batchInterval, 2)(_))(
       formula)
@@ -273,7 +273,7 @@ class TwitterAmpcampDemo
       } on (scalaTimeout)
     
     println("Running sparkTopUntilScalaTop")
-    forAllDStream[Status,String](
+    forAllDStream(
       gen)(
       TweetOps.getTopHashtag(batchInterval, windowSize)(_))(
       formula)

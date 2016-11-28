@@ -105,7 +105,7 @@ class TwitterAmpcampQuantDemo
           countsForHashtagsInFirstBatch should foreachRecord { _ >= numRepetitions }
         }) 
       }
-      forAllDStream[Status,(String,Int)](
+      forAllDStream(
         gen)(
         TweetOps.countHashtags(batchInterval, windowSize)(_))(
         laterCountNumRepetitions)
@@ -143,7 +143,7 @@ class TwitterAmpcampQuantDemo
     } during numBatches
     
     println("Running alwaysEventuallyZeroCount")
-    forAllDStream[Status,(String,Int)](
+    forAllDStream(
       gen)(
       TweetOps.countHashtags(batchInterval, windowSize)(_))(
       alwaysEventuallyZeroCount)
@@ -190,7 +190,7 @@ class TwitterAmpcampQuantDemo
     } during numBatches * 3 
                                  
     println("Running alwaysPeakImpliesEventuallyTop")
-    forAllDStream[Status,String](
+    forAllDStream(
       gen)(
       TweetOps.getTopHashtag(batchInterval, windowSize)(_))(
       alwaysAPeakImpliesEventuallyTop)
