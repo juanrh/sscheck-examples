@@ -11,13 +11,13 @@ import es.ucm.fdi.sscheck.gen.UtilsGen
 /** Generators for tweets
  */
 object TwitterGen {
-    /** Generator of mocks of Twitter4J Status objects with a getText method
- 		 *  that returns texts of up to 140 characters
- 		 *  
- 		 *  @param noHashtags if true no hashtags are generated in the 
- 		 *  tweet text
+    /** Generator of  Status mocks with a getText method
+     *  that returns texts of up to 140 characters
+     *  
+     *  @param noHashtags if true then no hashtags are generated in the  
+     *  tweet text
    	 * */
-    def tweet(noHashtags : Boolean = true) : Gen[Status] = {
+    def tweet(noHashtags: Boolean = true): Gen[Status] = {
       val maxWordLength = 8
       val wordGen = for {
         letters <- UtilsGen.containerOfNtoM[List, Char](1, maxWordLength,  Gen.alphaChar) 
@@ -37,11 +37,11 @@ object TwitterGen {
       }
     }
     
-    /** Take a Status generator and return a generator of Status mocks
-     *  that adds the specified hashtag to getText
+    /** Take a Status mocks generator and return a Status mocks 
+     *  generator that adds the specified hashtag to getText
    	 * */
-    def addHashtag(hashtagGen : Gen[String])
-                  (tweetGen : Gen[Status]) : Gen[Status] = 
+    def addHashtag(hashtagGen: Gen[String])
+                  (tweetGen: Gen[Status]): Gen[Status] = 
       for {
         hashtag <- hashtagGen
         if hashtag.length > 0 && hashtag(0) == '#' 

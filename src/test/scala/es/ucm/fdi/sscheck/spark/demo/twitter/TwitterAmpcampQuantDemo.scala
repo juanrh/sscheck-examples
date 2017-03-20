@@ -22,6 +22,7 @@ import es.ucm.fdi.sscheck.gen.PDStreamGenConversions._
 import es.ucm.fdi.sscheck.matcher.specs2.RDDMatchers._
 import org.scalacheck.Gen.const
 import es.ucm.fdi.sscheck.gen.PDStreamGen
+import es.ucm.fdi.sscheck.spark.demo.twitter.TwitterGen._
 
 /**
  * Properties with generators for the Twitter example from http://ampcamp.berkeley.edu/3/exercises/realtime-processing-with-spark-streaming.html  
@@ -84,7 +85,8 @@ class TwitterAmpcampQuantDemo
     Prop.forAllNoShrink(Gen.choose(1, windowSize)) { numRepetitions =>
       println(s"Testing for numRepetitions = $numRepetitions")
       
-      val tweets = BatchGen.ofNtoM(5, 10, TwitterGen.tweetWithHashtagsOfMaxLen(maxHashtagLength))      
+      val tweets = BatchGen.ofNtoM(5, 10, 
+                                   tweetWithHashtagsOfMaxLen(maxHashtagLength))      
       val gen = for {
         tweets <- BatchGen.always(tweets, numBatches)
         // using tweets as a constant generator, to repeat each generated
@@ -92,7 +94,7 @@ class TwitterAmpcampQuantDemo
         delayedTweets <- PDStreamGen.always(tweets, numRepetitions)
       } yield delayedTweets
 
-      val laterCountNumRepetitions: Formula[U] = nowF[U] { case (statuses, _) =>
+      val laterCountNumRepetitions = nextF[U] { case (statuses, _) =>
         val hashtagsInFirstBatch = getExpectedHashtagsForStatuses(statuses)
         // -2 because we have already consumed 1 batch in the outer nowF, and 
         // we will consume 1 batch in the internal now  
@@ -123,14 +125,15 @@ class TwitterAmpcampQuantDemo
     
     // repeat hashtags a bit so counts are bigger than 1   
     val tweets = for {
-      hashtags <- Gen.listOfN(6, TwitterGen.hashtag(maxHashtagLength))
+      hashtags <- Gen.listOfN(6, hashtag(maxHashtagLength))
       tweets <- BatchGen.ofNtoM(5, 10, 
-                  TwitterGen.addHashtag(Gen.oneOf(hashtags))(TwitterGen.tweet(noHashtags=true)))
+                  addHashtag(Gen.oneOf(hashtags))(tweet(noHashtags=true)))
     } yield tweets
     val emptyTweetBatch = Batch.empty[Status]
-    val gen = BatchGen.always(tweets, numBatches) ++ BatchGen.always(emptyTweetBatch, windowSize*2)
+    val gen = BatchGen.always(tweets, numBatches) ++ 
+              BatchGen.always(emptyTweetBatch, windowSize*2)
     
-    val alwaysEventuallyZeroCount: Formula[U] = alwaysF[U] { case (statuses, _) =>
+    val alwaysEventuallyZeroCount = alwaysF[U] { case (statuses, _) =>
       val hashtags = getExpectedHashtagsForStatuses(statuses)
       laterR[U] { case (_, counts) => 
         val countsForStatuses = 
@@ -152,7 +155,7 @@ class TwitterAmpcampQuantDemo
   /**
    * Liveness of TweetOps.getTopHashtag: if we superpose random tweets
    * with an periodic peak for a random hashtag, then each peak implies
-   * that the corresponding hastag will eventually be the top hashtag
+   * that the corresponding hashtag will eventually be the top hashtag
    */
   def alwaysPeakImpliesEventuallyTop = {
     type U = (RDD[Status], RDD[String])
@@ -164,23 +167,26 @@ class TwitterAmpcampQuantDemo
 	  
     val emptyTweetBatch = Batch.empty[Status]
     val tweets =
-      BatchGen.always(BatchGen.ofNtoM(5, 10, TwitterGen.tweetWithHashtagsOfMaxLen(maxHashtagLength)), 
-                      numBatches)      
+      BatchGen.always(
+          BatchGen.ofNtoM(5, 10, 
+              tweetWithHashtagsOfMaxLen(maxHashtagLength)), 
+          numBatches)      
     val popularTweetBatch = for {
-      hashtag <- TwitterGen.hashtag(maxHashtagLength)
-      batch <-  BatchGen.ofN(peakSize, TwitterGen.tweetWithHashtags(List(hashtag)))
+      hashtag <- hashtag(maxHashtagLength)
+      batch <-  BatchGen.ofN(peakSize, tweetWithHashtags(List(hashtag)))
     } yield batch
     val tweetsSpike = BatchGen.always(emptyTweetBatch, sidesLen) ++
                            BatchGen.always(popularTweetBatch, 1) ++
                            BatchGen.always(emptyTweetBatch, sidesLen)
-    // repeat 6 times the superposition of random tweets with a sudden spike
-    // for a random hastag
+    // repeat 6 times the superposition of random tweets 
+    // with a sudden spike for a random hashtag
     val gen = Gen.listOfN(6, tweets + tweetsSpike).map{_.reduce(_++_)}
    
-    val alwaysAPeakImpliesEventuallyTop: Formula[U] = alwaysF[U] { case (statuses, _) => 
+    val alwaysAPeakImpliesEventuallyTop = alwaysF[U] { case (statuses, _) => 
       val hashtags = getExpectedHashtagsForStatuses(statuses)
-      val peakHashtags = hashtags.map{(_,1)}.reduceByKey{_+_}.filter{_._2 >= peakSize}.keys.cache()
-      val isPeak: Formula[U] = Solved.ofResult { ! peakHashtags.isEmpty }
+      val peakHashtags = hashtags.map{(_,1)}.reduceByKey{_+_}
+                         .filter{_._2 >= peakSize}.keys.cache()
+      val isPeak = Solved[U] { ! peakHashtags.isEmpty }
       val eventuallyTop = laterR[U] { case (_, topHashtag) => 
         (topHashtag.subtract(peakHashtags) isEmpty) and
         (peakHashtags.subtract(topHashtag) isEmpty)

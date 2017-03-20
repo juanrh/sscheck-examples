@@ -14,7 +14,7 @@ lazy val sparkVersion = "1.6.2"
 
 lazy val specs2Version = "3.8.4" 
 
-lazy val sscheckVersion = "0.3.2-SNAPSHOT" // "0.3.1" // 
+lazy val sscheckVersion = "0.3.2-SNAPSHOT" // "0.3.1" //
 
 // Use `sbt doc` to generate scaladoc, more on chapter 14.8 of "Scala Cookbook"
 

@@ -20,6 +20,7 @@ import es.ucm.fdi.sscheck.gen.BatchGenConversions._
 import es.ucm.fdi.sscheck.gen.PDStreamGenConversions._
 import es.ucm.fdi.sscheck.matcher.specs2.RDDMatchers._
 import org.scalacheck.Gen.const
+import es.ucm.fdi.sscheck.spark.demo.twitter.TwitterGen._
 
 /**
  * Properties for the Twitter example from http://ampcamp.berkeley.edu/3/exercises/realtime-processing-with-spark-streaming.html  
@@ -50,8 +51,8 @@ class TwitterAmpcampDemo
       - where TweetOps.getHashtags works according to the reference implementation $getHashtagsReferenceImplementationOk
       - where TweetOps.countHashtags counts ok $countHashtagsOk
       - where hashtags are always counted $hashtagsAreAlwasysCounted
-      - where there is always one and only one top hashtag $alwaysOnlyOneTopHashtag
       - where TweetOps.getTopHashtag works ok $sparkTopUntilScalaTop
+      - where there is always one and only one top hashtag $alwaysOnlyOneTopHashtag
       """   
   
   /** Check that TweetOps.getHashtags only returns the hashtags 
@@ -64,7 +65,7 @@ class TwitterAmpcampDemo
     val numBatches = 5
     val possibleHashTags = List("#spark", "#scala", "#scalacheck")
     val tweets = BatchGen.ofNtoM(5, 10, 
-                                TwitterGen.tweetWithHashtags(possibleHashTags)
+                                tweetWithHashtags(possibleHashTags)
                                 )
     val gen = BatchGen.always(tweets, numBatches)
     
@@ -101,7 +102,7 @@ class TwitterAmpcampDemo
     type U = (RDD[Status], RDD[String])    
     val (numBatches, maxHashtagLength) = (5, 8)
 
-    val tweets = BatchGen.ofNtoM(5, 10, TwitterGen.tweetWithHashtagsOfMaxLen(maxHashtagLength))                            
+    val tweets = BatchGen.ofNtoM(5, 10, tweetWithHashtagsOfMaxLen(maxHashtagLength))                            
     val gen = BatchGen.always(tweets, numBatches)
     
     val formula: Formula[U] = alwaysR[U] { case (statuses, hashtags) => 
@@ -135,8 +136,8 @@ class TwitterAmpcampDemo
     
     val windowSize = 3
     val (sparkTimeout, scalaTimeout) = (windowSize * 4, windowSize * 2)
-    val (sparkTweet, scalaTweet) = 
-      (TwitterGen.tweetWithHashtags(List("#spark")), TwitterGen.tweetWithHashtags(List("#scala"))) 
+    val sparkTweet = tweetWithHashtags(List("#spark"))
+    val scalaTweet = tweetWithHashtags(List("#scala")) 
     val (sparkBatchSize, scalaBatchSize) = (2, 1)
     val gen = BatchGen.always(BatchGen.ofN(sparkBatchSize, sparkTweet), sparkTimeout) ++  
               BatchGen.always(BatchGen.ofN(scalaBatchSize, scalaTweet), scalaTimeout)
@@ -151,7 +152,8 @@ class TwitterAmpcampDemo
     */
     def countNHashtags(hashtag : String)(n : Int)  = 
       at(countBatch)(_ should existsRecord(_ == (hashtag, n : Int)))
-    val (countNSparks, countNScalas) = (countNHashtags("#spark")_, countNHashtags("#scala")_)
+    val countNSparks = countNHashtags("#spark") _
+    val countNScalas = countNHashtags("#scala") _
     val laterAlwaysAllSparkCount =  
       later { 
           always { 
@@ -184,14 +186,14 @@ class TwitterAmpcampDemo
   
    /**
    *  Safety of TweetOps.countHashtags: we assert that any arbitrary
-   *  generated hastag is never not counted
+   *  generated hashtag is never not counted
    * */
   def hashtagsAreAlwasysCounted = {
     type U = (RDD[Status], RDD[(String, Int)])
     val windowSize = 3
     val (numBatches, maxHashtagLength) = (windowSize * 6, 8)
     
-    val tweets = BatchGen.ofNtoM(5, 10, TwitterGen.tweetWithHashtagsOfMaxLen(maxHashtagLength))      
+    val tweets = BatchGen.ofNtoM(5, 10, tweetWithHashtagsOfMaxLen(maxHashtagLength))      
     val gen = BatchGen.always(tweets, numBatches)
         
     val alwaysCounted: Formula[U] = alwaysR[U] { case (statuses, counts) =>  
@@ -219,38 +221,12 @@ class TwitterAmpcampDemo
       alwaysCounted)
 
   }.set(minTestsOk = 15).verbose 
-      
-  /** Safety of TweetOps.getTopHastag: there is 
-   *  always one top hashtag
-   * */
-  def alwaysOnlyOneTopHashtag = {
-    type U = (RDD[Status], RDD[String])
-    val topHashtagBatch = (_ : U)._2
-
-    val (numBatches, maxHashtagLength) = (5, 8)   
-    val tweets = 
-      BatchGen.ofNtoM(5, 10, 
-                      TwitterGen.tweetWithHashtagsOfMaxLen(maxHashtagLength))
-
-    val gen = BatchGen.always(tweets, numBatches)    
-    val formula : Formula[U] = always { 
-      at(topHashtagBatch){ hashtags =>
-        hashtags.count == 1 
-      }
-    } during numBatches
-    
-    println("Running alwaysOnlyOneTopHashtag")
-    forAllDStream(
-      gen)(
-      TweetOps.getTopHashtag(batchInterval, 2)(_))(
-      formula)
-  }.set(minTestsOk = 10).verbose
   
   /**
-  *  Test TweetOps.getTopHastag by generating an scenario where 
+  *  Test TweetOps.getTopHashtag by generating an scenario where 
   *  the hashtag "#spark" is the most popular, and then the 
   *  hashtag "#scala" is the most popular, and asserting in 
-  *  the output that "#spark" is the most popular hastag 
+  *  the output that "#spark" is the most popular hashtag 
   *  until "#scala" is the most popular
   *  */
   def sparkTopUntilScalaTop = {
@@ -260,11 +236,11 @@ class TwitterAmpcampDemo
     val topHashtagBatch = (_ : U)._2
     val scalaTimeout = 6
     val sparkPopular = 
-      BatchGen.ofN(5, TwitterGen.tweetWithHashtags(List("#spark"))) +
-      BatchGen.ofN(2, TwitterGen.tweetWithHashtags(List("#scalacheck"))) 
+      BatchGen.ofN(5, tweetWithHashtags(List("#spark"))) +
+      BatchGen.ofN(2, tweetWithHashtags(List("#scalacheck"))) 
     val scalaPopular = 
-      BatchGen.ofN(7, TwitterGen.tweetWithHashtags(List("#scala"))) +
-      BatchGen.ofN(2, TwitterGen.tweetWithHashtags(List("#scalacheck"))) 
+      BatchGen.ofN(7, tweetWithHashtags(List("#scala"))) +
+      BatchGen.ofN(2, tweetWithHashtags(List("#scalacheck"))) 
     val gen = BatchGen.until(sparkPopular, scalaPopular, scalaTimeout) 
       
     val formula : Formula[U] = 
@@ -278,6 +254,32 @@ class TwitterAmpcampDemo
       TweetOps.getTopHashtag(batchInterval, windowSize)(_))(
       formula)
   }.set(minTestsOk = 15).verbose
+  
+    /** Safety of TweetOps.getTopHashtag: there is 
+   *  always one top hashtag
+   * */
+  def alwaysOnlyOneTopHashtag = {
+    type U = (RDD[Status], RDD[String])
+    val topHashtagBatch = (_ : U)._2
+
+    val (numBatches, maxHashtagLength) = (5, 8)   
+    val tweets = 
+      BatchGen.ofNtoM(5, 10, 
+                      tweetWithHashtagsOfMaxLen(maxHashtagLength))
+
+    val gen = BatchGen.always(tweets, numBatches)    
+    val formula : Formula[U] = always { 
+      at(topHashtagBatch){ hashtags =>
+        hashtags.count === 1 
+      }
+    } during numBatches
+    
+    println("Running alwaysOnlyOneTopHashtag")
+    forAllDStream(
+      gen)(
+      TweetOps.getTopHashtag(batchInterval, 2)(_))(
+      formula)
+  }.set(minTestsOk = 10).verbose
   
 }
 
