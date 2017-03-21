@@ -1,26 +1,19 @@
 package es.ucm.fdi.sscheck.spark.demo.twitter
 
-import org.junit.runner.RunWith
-import org.specs2.runner.JUnitRunner
-import org.specs2.ScalaCheck
-import org.specs2.Specification
-import org.specs2.matcher.ResultMatchers
-import org.scalacheck.{Gen, Prop}
-import twitter4j.Status
-import org.apache.spark.rdd.RDD
-import org.apache.spark.streaming.Duration
-import org.apache.spark.streaming.dstream.DStream
-import org.apache.spark.streaming.dstream.DStream._
-import scalaz.syntax.std.boolean._
-import es.ucm.fdi.sscheck.gen.UtilsGen
-import es.ucm.fdi.sscheck.prop.tl.{Formula,DStreamTLProperty}
-import es.ucm.fdi.sscheck.prop.tl.Formula._
 import es.ucm.fdi.sscheck.gen.BatchGen
 import es.ucm.fdi.sscheck.gen.BatchGenConversions._
 import es.ucm.fdi.sscheck.gen.PDStreamGenConversions._
 import es.ucm.fdi.sscheck.matcher.specs2.RDDMatchers._
-import org.scalacheck.Gen.const
+import es.ucm.fdi.sscheck.prop.tl.Formula._
+import es.ucm.fdi.sscheck.prop.tl.{DStreamTLProperty, Formula}
 import es.ucm.fdi.sscheck.spark.demo.twitter.TwitterGen._
+import org.apache.spark.rdd.RDD
+import org.apache.spark.streaming.Duration
+import org.junit.runner.RunWith
+import org.specs2.{ScalaCheck, Specification}
+import org.specs2.matcher.ResultMatchers
+import org.specs2.runner.JUnitRunner
+import twitter4j.Status
 
 /**
  * Properties for the Twitter example from http://ampcamp.berkeley.edu/3/exercises/realtime-processing-with-spark-streaming.html  
