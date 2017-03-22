@@ -99,9 +99,8 @@ class TwitterAmpcampDemo
     val gen = BatchGen.always(tweets, numBatches)
     
     val formula: Formula[U] = alwaysR[U] { case (statuses, hashtags) => 
-      val expectedHashtags = getExpectedHashtagsForStatuses(statuses).cache()  
-      (hashtags.subtract(expectedHashtags) isEmpty) and
-      (expectedHashtags.subtract(hashtags) isEmpty)
+      val expectedHashtags = getExpectedHashtagsForStatuses(statuses).cache()
+      hashtags must beEqualAsSetTo(expectedHashtags)
     } during numBatches
 
     println("Running getHashtagsReferenceImplementationOk")
@@ -197,12 +196,11 @@ class TwitterAmpcampDemo
          .join(counts)
          .map{case (hashtag, (_, count)) => (hashtag, count)}
          .cache()
-      val countedHashtags = expectedHashtagsWithActualCount.map{_._1}
+      val countedHashtags = expectedHashtagsWithActualCount.map{_._1}.cache()
       val countings = expectedHashtagsWithActualCount.map{_._2}
       
       // all hashtags have been counted
-      (countedHashtags.subtract(expectedHashtags) isEmpty) and
-      (expectedHashtags.subtract(countedHashtags) isEmpty) and
+      countedHashtags must beEqualAsSetTo(expectedHashtags) and
       // no count is zero
       (countings should foreachRecord { _ > 0 }) 
     } during numBatches
@@ -275,4 +273,3 @@ class TwitterAmpcampDemo
   }.set(minTestsOk = 10).verbose
   
 }
-

@@ -1,7 +1,7 @@
 package es.ucm.fdi.sscheck.spark.demo.twitter
 
 import es.ucm.fdi.sscheck.gen.PDStreamGenConversions._
-import es.ucm.fdi.sscheck.gen.{Batch, BatchGen, PDStreamGen}
+import es.ucm.fdi.sscheck.gen.{Batch, BatchGen, PDStream, PDStreamGen}
 import es.ucm.fdi.sscheck.matcher.specs2.RDDMatchers._
 import es.ucm.fdi.sscheck.prop.tl.Formula._
 import es.ucm.fdi.sscheck.prop.tl.{DStreamTLProperty, Solved}
@@ -173,16 +173,16 @@ class TwitterAmpcampQuantDemo
                            BatchGen.always(emptyTweetBatch, sidesLen)
     // repeat 6 times the superposition of random tweets 
     // with a sudden spike for a random hashtag
-    val gen = Gen.listOfN(6, tweets + tweetsSpike).map{_.reduce(_++_)}
+    val gen: Gen[PDStream[Status]] =
+      Gen.listOfN(6, tweets + tweetsSpike).map{_.reduce(_++_)}
    
     val alwaysAPeakImpliesEventuallyTop = alwaysF[U] { case (statuses, _) => 
       val hashtags = getExpectedHashtagsForStatuses(statuses)
       val peakHashtags = hashtags.map{(_,1)}.reduceByKey{_+_}
                          .filter{_._2 >= peakSize}.keys.cache()
       val isPeak = Solved[U] { ! peakHashtags.isEmpty }
-      val eventuallyTop = laterR[U] { case (_, topHashtag) => 
-        (topHashtag.subtract(peakHashtags) isEmpty) and
-        (peakHashtags.subtract(topHashtag) isEmpty)
+      val eventuallyTop = laterR[U] { case (_, topHashtag) =>
+        topHashtag must beEqualAsSetTo(peakHashtags)
       } on numBatches
       
       isPeak ==> eventuallyTop
