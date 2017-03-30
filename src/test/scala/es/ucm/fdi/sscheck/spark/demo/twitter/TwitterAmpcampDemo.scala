@@ -62,7 +62,7 @@ class TwitterAmpcampDemo
                                 )
     val gen = BatchGen.always(tweets, numBatches)
     
-    val formula : Formula[U] = always { 
+    val formula = always {
       at(hashtagBatch){ hashtags =>
         hashtags.count > 0 and
         ( hashtags should foreachRecord(possibleHashTags.contains(_)) ) 
@@ -98,7 +98,7 @@ class TwitterAmpcampDemo
     val tweets = BatchGen.ofNtoM(5, 10, tweetWithHashtagsOfMaxLen(maxHashtagLength))                            
     val gen = BatchGen.always(tweets, numBatches)
     
-    val formula: Formula[U] = alwaysR[U] { case (statuses, hashtags) => 
+    val formula = alwaysR[U] { case (statuses, hashtags) =>
       val expectedHashtags = getExpectedHashtagsForStatuses(statuses).cache()
       hashtags must beEqualAsSetTo(expectedHashtags)
     } during numBatches
@@ -164,7 +164,7 @@ class TwitterAmpcampDemo
             next(next(countNSparks(sparkBatchSize * (windowSize - 3)))) 
           } on (sparkTimeout -2) 
       } on (windowSize + 1)
-    val formula : Formula[U] = 
+    val formula =
       laterAlwaysAllSparkCount and 
       laterScalaCount and 
       laterSparkCountUntilDownToZero
@@ -188,7 +188,7 @@ class TwitterAmpcampDemo
     val tweets = BatchGen.ofNtoM(5, 10, tweetWithHashtagsOfMaxLen(maxHashtagLength))      
     val gen = BatchGen.always(tweets, numBatches)
         
-    val alwaysCounted: Formula[U] = alwaysR[U] { case (statuses, counts) =>  
+    val alwaysCounted = alwaysR[U] { case (statuses, counts) =>
       val expectedHashtags = getExpectedHashtagsForStatuses(statuses).cache()
       val expectedHashtagsWithActualCount = 
         expectedHashtags
@@ -202,7 +202,7 @@ class TwitterAmpcampDemo
       // all hashtags have been counted
       countedHashtags must beEqualAsSetTo(expectedHashtags) and
       // no count is zero
-      (countings should foreachRecord { _ > 0 }) 
+      (countings should foreachRecord { _ > 0 })
     } during numBatches
     
     println("Running hashtagsAreAlwasysCounted")
@@ -234,7 +234,7 @@ class TwitterAmpcampDemo
       BatchGen.ofN(2, tweetWithHashtags(List("#scalacheck"))) 
     val gen = BatchGen.until(sparkPopular, scalaPopular, scalaTimeout) 
       
-    val formula : Formula[U] = 
+    val formula =
       { at(topHashtagBatch)(_ should foreachRecord(_ == "#spark" )) } until {
         at(topHashtagBatch)(_ should foreachRecord(_ == "#scala" ))
       } on (scalaTimeout)
@@ -259,7 +259,7 @@ class TwitterAmpcampDemo
                       tweetWithHashtagsOfMaxLen(maxHashtagLength))
 
     val gen = BatchGen.always(tweets, numBatches)    
-    val formula : Formula[U] = always { 
+    val formula = always {
       at(topHashtagBatch){ hashtags =>
         hashtags.count === 1 
       }

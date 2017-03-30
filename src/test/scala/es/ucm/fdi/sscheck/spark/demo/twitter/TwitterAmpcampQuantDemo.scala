@@ -89,7 +89,7 @@ class TwitterAmpcampQuantDemo
 
       val laterCountNumRepetitions = nextF[U] { case (statuses, _) =>
         val hashtagsInFirstBatch = getExpectedHashtagsForStatuses(statuses)
-        // -2 because we have already consumed 1 batch in the outer nowF, and 
+        // -2 because we have already consumed 1 batch in the outer nextF, and
         // we will consume 1 batch in the internal now  
         next(max(numRepetitions-2, 0))(now { case (_, counts) =>
           val countsForHashtagsInFirstBatch = 
