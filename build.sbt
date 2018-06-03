@@ -1,5 +1,3 @@
-import com.typesafe.sbteclipse.plugin.EclipsePlugin.EclipseKeys._
-
 name := "sscheck-examples"
 
 organization := "es.ucm.fdi"
@@ -32,10 +30,6 @@ fork := true
 // Could be interesting at some point
 // resourceDirectory in Compile := baseDirectory.value / "main/resources"
 // resourceDirectory in Test := baseDirectory.value / "main/resources"
-
-// Configure sbt to add the resources path to the eclipse project http://stackoverflow.com/questions/14060131/access-configuration-resources-in-scala-ide
-// This is critical so log4j.properties is found by eclipse
-EclipseKeys.createSrc := EclipseCreateSrc.Default + EclipseCreateSrc.Resource
 
 // Spark 
 libraryDependencies += "org.apache.spark" %% "spark-core" % sparkVersion
