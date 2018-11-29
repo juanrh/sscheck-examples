@@ -1,4 +1,11 @@
 language: scala
+notifications:
+  email:
+    on_success: always
+    on_failure: always
+    recipients:
+      - juan.rodriguez.hortala@gmail.com
+
 scala:
    - 2.10.5
 jdk:
